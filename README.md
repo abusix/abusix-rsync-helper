@@ -28,7 +28,7 @@ In order for the zones to automatically, you'll need to setup a cron job with cr
 crontab -e
 
 # run the script every minute
-1 * * * * /usr/local/bin/getabusix.sh
+* * * * * /usr/local/bin/getabusix.sh
 </pre>
 
 ## Further Information ##

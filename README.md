@@ -28,12 +28,12 @@ In order for the zones to automatically update evey 2 minutes, you'll need to se
 # fire up the crontab (no sudo)
 crontab -e
 
-# run the script every 2 minutes
-2 * * * * /home/YOUR-USERNAME/bin/getabusix.sh
+# run the script every minute
+1 * * * * /home/YOUR-USERNAME/bin/getabusix.sh
 </pre>
 
 ## Further Information ##
-Abusix Mail Intelligence Docs:
-Abusix Mail Intelligence Product Information:
-Abusix Mail Intelligence Support:
+Abusix Mail Intelligence Docs: 
+Abusix Mail Intelligence Product Information: 
+Abusix Mail Intelligence Support: 
 

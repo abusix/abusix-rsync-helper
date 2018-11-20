@@ -6,7 +6,7 @@ Place the script somewhere on your server.
 
 <pre>
 # find a nice home
-cd /home/YOUR-USERNAME/bin/
+cd /usr/local/bin/
 
 # download the file
 wget https://gitlab.com/abusix-public/abusix-rsync-helper/raw/master/getabusix.sh
@@ -29,7 +29,7 @@ In order for the zones to automatically update evey 2 minutes, you'll need to se
 crontab -e
 
 # run the script every minute
-1 * * * * /home/YOUR-USERNAME/bin/getabusix.sh
+1 * * * * /usr/local/bin/getabusix.sh
 </pre>
 
 ## Further Information ##

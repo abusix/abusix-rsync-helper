@@ -1,6 +1,5 @@
 ## Abusix rsync Helper ##
-A shell script that downloads the latest Abusix Mail Intelignece Zone Files, checks them against md5 sums and puts them into the right folder. This script requires a valid username and password to access the Zonefiles. If you do not have a username or password yet, please reach out to sales@abusix.com or use our free online query service. Further informtion can be found under https://abusix.com and https://abusix.ai.
-
+A shell script that downloads the latest Abusix Mail Intelligence zone files checks them against md5 sums and puts them into the right folder. This script requires a valid username and password to access the zone files. If you do not have a username or password yet, please reach out to sales@abusix.com or use our free online query service available at https://abusix.ai. 
 ## Usage ##
 Place the script somewhere on your server.
 

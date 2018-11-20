@@ -28,6 +28,6 @@ In order for the zones to automatically update evey 2 minutes, you'll need to se
 # fire up the crontab (no sudo)
 crontab -e
 
-# run the script every day at 3am
+# run the script every 2 minutes
 2 * * * * /home/YOUR-USERNAME/bin/getabusix.sh
 </pre>

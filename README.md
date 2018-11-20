@@ -22,7 +22,7 @@ sudo ./getabusix.sh
 </pre>
 
 ## Frequent Updating ##
-In order for the zones to automatically update evey 2 minutes, you'll need to setup a cron job with crontab.
+In order for the zones to automatically, you'll need to setup a cron job with crontab.
 <pre>
 # fire up the crontab (no sudo)
 crontab -e

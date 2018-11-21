@@ -70,7 +70,7 @@ status=$?
 if [ "$status" -eq 0 ]
 then
     sleep 2
-    res=$(wget --spider -q $BLOCKURL -O ./block)
+    res=$(wget --spider -q $BLOCKURL -O /dev/null)
     status=$?
     echo $res
     if [ "$status" -eq 0 ]; then

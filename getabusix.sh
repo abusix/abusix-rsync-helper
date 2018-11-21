@@ -65,7 +65,7 @@ sleep $DELAY
 
 export RSYNC_PASSWORD=$USERPASS
 
-res=$(wget --spider -q $BLOCKURL -O ./block)
+res=$(wget --spider -q $BLOCKURL -O /dev/null)
 status=$?
 # echo $res
 if [ "$status" -eq 0 ]

@@ -32,8 +32,3 @@ crontab -e
 * * * * * /usr/local/bin/getabusix.sh
 </pre>
 
-## Further Information ##
-Abusix Mail Intelligence Docs: 
-Abusix Mail Intelligence Product Information: 
-Abusix Mail Intelligence Support: 
-

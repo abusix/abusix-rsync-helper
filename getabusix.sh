@@ -58,7 +58,6 @@ fi
 touch $WORKDIR/.lock
 
 # Add variable DELAY (Adds random number of seconds between 1 and 20 to decrease the load on the rsync server).
-# DELAY=$(shuf -i 1-20 -n 1)
 DELAY=$(shuf -i 1-20 -n 1)
 echo "Waiting random delay: $DELAY" >> $LOGFILE
 sleep $DELAY

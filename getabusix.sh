@@ -119,7 +119,7 @@ while [ "$gotfiles" -ne 0 ] && [ "$nretry" -lt 3 ]; do
 done
 echo "Files checksum Ok! Moving to destination" >> $LOGFILE
 # Move to destination directory
-cp $WORKDIR/*.zone $WORKDIR/.tmp/
+cp --preserve $WORKDIR/*.zone $WORKDIR/.tmp/
 mv $WORKDIR/.tmp/*.zone $DESTPATH
 rm $WORKDIR/.lock
 echo "$(date +%Y-%m-%d\ %H:%M:%S) - Finished Abusix Zone files download." >> $LOGFILE

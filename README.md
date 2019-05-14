@@ -11,7 +11,7 @@ Copy `getabusix.conf` to either `/etc` or `/usr/local/etc` and then copy the `US
 
 Overwrite the existing `getabusix.sh` script with the new script.
 
-Run `getabusix.sh --debug' to force a run and make sure no errors are returned.
+Run `getabusix.sh --debug` to force a run and make sure no errors are returned.
 
 ## Installation ##
 

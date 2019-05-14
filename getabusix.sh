@@ -1,126 +1,173 @@
 #!/bin/sh
 #
 # Abusix Mail Intelligence
-# Copyright 2018, Abusix Inc.
+# Copyright 2019, Abusix Inc.
 #
 #################################################################
-# Please modify the variables below to suit your configuration
+#  Please do not modify anything in this file.
 #################################################################
 
-# Add your username and password here as provided by Abusix.
-USERNAME=""
-USERPASS=""
-# Working directory path
-# Please make sure it is writable by the user executing this script.
-# This is used as the location where the zones are downloaded and 
-# checked before they are moved into place, it will also contain
-# the lockfile to prevent multiple copies of this script for running.
-WORKDIR="./"
-# Full destination path of where the zone files should be placed
-# once they have been downloaded an verified.  This should be a
-# directory that is referenced by your rbldnsd configuration.
-DESTPATH="$WORKDIR/zonefiles"
-# Full path to log file (Example: /var/log/abusix-rsync-$(date +%Y-%m-%d).log)
-LOGFILE="$WORKDIR/abusix-rsync-$(date +%Y-%m-%d).log"
-# RSYNC pool to get data from.
-# rsync.abusix.zone uses geo-location to determine the closest server to you.
-# rsync-na.abusix.zone is server pool in North America.
-# rsync-eu.abusix.zone is server pool in Europe.
-RSYNCPOOL="rsync.abusix.zone"
+VERSION=2
 
+LOGGER=$(which logger)
 
-###### Please do not modify anyting below this line. ######
-# Catch signals.
-trap "rm $WORKDIR/.lock; echo 'Script interrupted.' >> $LOGFILE; exit 1" HUP INT TERM KILL
+if [ "$1" = "--debug" ]; then
+    DEBUG=true
+fi
 
-# RSYNC MODULE
+cleanup() {
+    rm "$DESTPATH/.lock"
+    log "Script interrupted."
+    exit 1
+}
+
+# RSYNC MODULES
 RSYNCMODULE="lists"
+BETA_RSYNCMODULE="beta-lists"
 
-# CHECK AND VALIDATION URL's
-BLOCKURL="http://$RSYNCPOOL:8873/block.html"
-CHECKURL="http://$RSYNCPOOL:8873/check.html"
+# RSYNC ARGUMENTS
+# --partial-dir along with --delete-delay and --delay-updates
+# ensures that all of the files are written to the partial dir
+# first and then moved into place all at once, this is important
+# to ensure that rbldnsd sees the updates all at the same time
+# and does not get any partial reads.
+# The --exclude directives ensure that no temporary files are
+# included in the rsync and is important because it ensures the
+# lockfile can be in the same directory as the zone files.
+# --chmod along with --no-perms and --no-group prevents issues
+# with ownership being copied from the rsync server which will
+# differ as the uid/gids will be different across different OSes.
+# So this ensures that the files will be owned by whatever user
+# does the rsync and that files can still be read by anyone
+# (including rbldnsd).
+RSYNCOPTS="-azivv --partial-dir=.incomplete --delete-delay --exclude=.incomplete/ --exclude=.* --exclude=*.tmp --delay-updates --chmod=Du=rwx,Dgo=rx,Fu=rw,Fgo=r --no-perms --no-group"
 
-RSYNCOPTS="-tlazivv --partial-dir=.incomplete --delete --exclude=.incomplete/ --exclude=*.tmp --delay-updates"
-
-mkdir -p "$WORKDIR/.incomplete"
-mkdir -p "$WORKDIR/.tmp"
-mkdir -p "$DESTPATH"
-
-echo "" >> $LOGFILE
-echo "   ------  " >> $LOGFILE
-echo "$(date +%Y-%m-%d\ %H:%M:%S) - Starting Abusix Zone files download." >> $LOGFILE
-
-if [ -f $WORKDIR/.lock ]; then
-    echo "$(date +%Y-%m-%d\ %H:%M:%S) - Lock file found. Quiting." >> $LOGFILE
+# Look for config
+if [ -f "/etc/getabusix.conf" ]; then
+    CONFIG="/etc/getabusix.conf"
+elif [ -f "/usr/local/etc/getabusix.conf" ]; then
+    CONFIG="/usr/local/etc/getabusix.conf"
+elif [ -f "$(dirname $0)/getabusix.conf" ]; then
+    CONFIG="$(dirname $0)/getabusix.conf"
+else
+    echo "Error: config file not found!  Aborting execution..."
     exit 1
 fi
 
-touch $WORKDIR/.lock
+. $CONFIG
 
-# Add variable DELAY (Adds random number of seconds between 1 and 20 to decrease the load on the rsync server).
-DELAY=$(shuf -i 1-20 -n 1)
-echo "Waiting random delay: $DELAY" >> $LOGFILE
-sleep $DELAY
+# Make sure username and password are set
+if [ -z "$USERNAME" ] || [ -z "$USERPASS" ]; then
+    echo "Error: USERNAME and/or USERPASS not configured!  Aborting execution..."
+    exit 1
+fi
 
-export RSYNC_PASSWORD=$USERPASS
+if [ -z "$DESTPATH" ]; then
+    echo "Error: DESTPATH not configured!  Aborting execution..."
+    exit 1
+fi
 
-res=$(wget --spider -q $BLOCKURL -O /dev/null)
-status=$?
-# echo $res
-if [ "$status" -eq 0 ]
-then
-    sleep 2
-    res=$(wget --spider -q $BLOCKURL -O /dev/null)
-    status=$?
-    echo $res
-    if [ "$status" -eq 0 ]; then
-        #  Write to log file.
-        echo "$(date +%Y-%m-%d\ %H:%M:%S) - Update blocked! Will retry next time. Result:$res" >> $LOGFILE
-        rm $WORKDIR/.lock
-        exit 1
+# Set default pool
+if [ -z "$RSYNCPOOL" ]; then
+    RSYNCPOOL="rsync.abusix.zone"
+fi
+
+# Logfile specified by user, prevent logger
+if [ -n "$LOGFILE" ]; then
+    LOGGER=""
+fi
+
+# Make sure BETA_DESTPATH !== DESTPATH
+if [ -n "$BETA_DESTPATH" ] && [ "$BETA_DESTPATH" = "$DESTPATH" ]; then
+    echo "Error: BETA_DESTPATH cannot be the same as DESTPATH!  Aborting execution..."
+    exit 1
+fi
+
+# Logging function
+log() {
+    if ([ -z "$LOGFILE" ] && [ -x "$LOGGER" ]) || [  "$LOGFILE" = "logger" ]; then
+        LPARAM="-t getabusix.sh"
+        if [ -n "$DEBUG" ]; then
+            LPARAM="$LPARAM -s"
+        fi
+        echo "$1" | while read line
+        do
+            logger $LPARAM "$line"
+        done
+    elif [ -z "$LOGFILE" ] || [ "$LOGFILE" = "stdout" ]; then
+        echo "$(date +%Y-%m-%d\ %H:%M:%S) - $1"
     else
-        echo "No block file" >> $LOGFILE
+        echo "$(date +%Y-%m-%d\ %H:%M:%S) - $1" >> $LOGFILE
+    fi
+}
+
+mkdir -p "$DESTPATH"
+
+# Check for lock.
+if [ -f "$DESTPATH/.lock" ]; then
+    log "Lock file found. Quiting."
+    exit 1
+fi
+
+# Catch signals.
+trap cleanup HUP INT TERM KILL
+
+touch "$DESTPATH/.lock"
+
+if [ -z "$DEBUG" ]; then
+    # Add variable DELAY (Adds random number of seconds between 1 and 20 to decrease the load on the rsync server).
+    DELAY=$(shuf -i 1-20 -n 1)
+    log "Waiting random delay: $DELAY"
+    sleep $DELAY
+fi
+
+getfiles() {
+    # Get zone files.
+    log "Getting files with rsync (module=$1 destpath=$2)"
+    OUTPUT="$(RSYNC_PASSWORD=$USERPASS rsync $RSYNCOPTS "$USERNAME@$RSYNCPOOL::$1/" "$2")"
+    EXIT=$?
+    log "$OUTPUT"
+    return $EXIT
+}
+
+fetch_with_retry() {
+    nretry=0
+    gotfiles=0
+    getfiles $1 $2
+    gotfiles=$?
+    while [ "$gotfiles" -ne 0 ] && [ "$nretry" -lt 3 ]; do
+        sleep 2
+        log "Download error! Retrying... "
+        getfiles $1 $2
+        gotfiles=$?
+        nretry=$(expr $nretry + 1)
+        log "Retries: $nretry"
+        if [ "$nretry" -eq 3 ]; then
+            log "Unsuccessful download! Giving up.. "
+            exit 1
+        fi
+    done
+}
+
+fetch_with_retry "$RSYNCMODULE" "$DESTPATH"
+
+# Beta
+if [ -n "$BETA_DESTPATH" ]; then
+    mkdir -p "$BETA_DESTPATH"
+    fetch_with_retry "$BETA_RSYNCMODULE" "$BETA_DESTPATH"
+fi
+
+# Check for new version of this script
+if [ -e "$DESTPATH/SCRIPT_VERSION" ]; then
+    REMOTE_VERSION=$(cat "$DESTPATH/SCRIPT_VERSION")
+    # Convert to integer
+    REMOTE_VERSION=$(expr $REMOTE_VERSION + 0)
+    if [ $REMOTE_VERSION -gt $VERSION ]; then
+        log "IMPORTANT: a new version of this script is available for download"
+        log "This version: $VERSION < $REMOTE_VERSION"
     fi
 fi
 
-nretry=0
-gotfiles=0
-getfiles() {
-    # Get zone files.
-    echo "Getting files with rsync" >> $LOGFILE
-    rsync $RSYNCOPTS $USERNAME@$RSYNCPOOL::$RSYNCMODULE/* $WORKDIR >> $LOGFILE 2>&1
-    echo "Verifying files" >> $LOGFILE
-
-    # Verify zone files.
-    # Get local files md5 checksum.
-    cd $WORKDIR
-    md5sum *.zone > localmd5sum.txt
-    # Get remote files md5 checksum.
-    wget -q $CHECKURL -O remotemd5sum.txt
-    # Compare checksums.
-    diff localmd5sum.txt remotemd5sum.txt >/dev/null 2>&1
-    return $?
-}
-
-getfiles
-gotfiles=$?
-while [ "$gotfiles" -ne 0 ] && [ "$nretry" -lt 3 ]; do
-    sleep 2
-    echo "$(date +%Y-%m-%d\ %H:%M:%S) - Checksum mismatch! Retriying.. " >> $LOGFILE
-    getfiles
-    gotfiles=$?
-    nretry=`expr $nretry + 1`
-    echo "Retries: $nretry"
-    if [ "$nretry" -eq 3 ]; then
-        echo "$(date +%Y-%m-%d\ %H:%M:%S) - Checksum mismatch! Giving up.. " >> $LOGFILE
-        rm $WORKDIR/.lock
-        exit 1
-    fi
-done
-echo "Files checksum Ok! Moving to destination" >> $LOGFILE
-# Move to destination directory
-cp --preserve $WORKDIR/*.zone $WORKDIR/.tmp/
-mv $WORKDIR/.tmp/*.zone $DESTPATH
-rm $WORKDIR/.lock
-echo "$(date +%Y-%m-%d\ %H:%M:%S) - Finished Abusix Zone files download." >> $LOGFILE
+rm "$DESTPATH/.lock"
+log "Finished Abusix Zone files download."
 exit 0

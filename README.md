@@ -7,7 +7,7 @@ This script requires a valid username and password to access the zone files. If 
 
 Copy `getabusix.conf` to either `/etc` or `/usr/local/etc` and then copy the `USERNAME` `USERPASS` and `DESTPATH` settings from the existing `getabusix.sh` script into this file.
 
-*IMPORTANT* Make sure that the DESTPATH only contains Abusix zone files because any files or directories not present on our rsync server will be automatically removed as the directory is mirrored, so any other files should be moved and your configuration altered as necessary.
+**IMPORTANT** Make sure that the `DESTPATH` only contains Abusix zone files because any files or directories not present on our rsync server will be automatically removed as the directory is mirrored, so any other files should be moved and your configuration altered as necessary.
 
 Overwrite the existing `getabusix.sh` script with the new script.
 

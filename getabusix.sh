@@ -144,7 +144,7 @@ fetch_with_retry() {
         log "Retries: $nretry"
         if [ "$nretry" -eq 3 ]; then
             log "Unsuccessful download! Giving up.. "
-            exit 1
+            cleanup
         fi
     done
 }

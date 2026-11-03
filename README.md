@@ -1,45 +1,68 @@
-## Abusix rsync Helper ##
-A shell script that downloads the latest Abusix Mail Intelligence zone files.
+# Abusix rsync Helper
 
-This script requires a valid username and password to access the zone files. If you do not have a username or password yet, please reach out to sales@abusix.com or use our free online query service available at https://abusix.ai. 
+`getabusix.sh` is a shell script that downloads the Abusix Mail Intelligence zone files over rsync, so that a local DNS server such as rbldnsd can serve them.
 
-## Upgrading from the previous version of this script ##
+The script needs a username and password to access the zone files. If you do not have a username or password yet, please reach out to sales@abusix.com or use our free online query service available at https://abusix.ai.
 
-Copy `getabusix.conf` to either `/etc` or `/usr/local/etc` and then copy the `USERNAME` `USERPASS` and `DESTPATH` settings from the existing `getabusix.sh` script into this file.
+## How it works
 
-**IMPORTANT** Make sure that the `DESTPATH` only contains Abusix zone files because any files or directories not present on our rsync server will be automatically removed as the directory is mirrored, so any other files should be moved and your configuration altered as necessary.
+Each run:
 
-Overwrite the existing `getabusix.sh` script with the new script.
+1. Reads `getabusix.conf` from `/etc`, then `/usr/local/etc`, then the script's own directory, and stops at the first one it finds.
+2. Exits if `DESTPATH/.lock` exists, otherwise creates it, so two runs never overlap.
+3. Waits a random 1 to 20 seconds to spread the load on the rsync servers (skipped with `--debug`).
+4. Mirrors the `lists` rsync module from `RSYNCPOOL` into `DESTPATH`, and the `beta-lists` module into `BETA_DESTPATH` when that is set. Files are written to a temporary directory first and moved into place together, so rbldnsd never reads a half-written zone. A failed download is retried three times.
+5. Logs a notice if the `SCRIPT_VERSION` file in the downloaded data names a newer version than the script's own (`VERSION=2`).
+6. Removes the lock file.
 
-Run `getabusix.sh --debug` to force a run and make sure no errors are returned.
+**IMPORTANT** Make sure that `DESTPATH` only contains Abusix zone files. The directory is mirrored, so any file or directory that is not on our rsync server is removed. The same applies to `BETA_DESTPATH`.
 
-## Installation ##
+## Installation
 
-<pre>
+```sh
 # download the files
-wget https://gitlab.com/abusix-public/abusix-rsync-helper/raw/master/getabusix.sh
-wget https://gitlab.com/abusix-public/abusix-rsync-helper/raw/master/getabusix.conf
+wget https://raw.githubusercontent.com/abusix/abusix-rsync-helper/master/getabusix.sh
+wget https://raw.githubusercontent.com/abusix/abusix-rsync-helper/master/getabusix.conf
 
 # move the files into place
 mv getabusix.conf /etc
 mv getabusix.sh /usr/local/bin
 
-# edit the configuration files and set USERNAME, USERPASS and DESTPATH variables
+# edit the configuration file and set USERNAME, USERPASS and DESTPATH
 vi /etc/getabusix.conf
 
 # make the script executable
 chmod +x /usr/local/bin/getabusix.sh
 
-# do initial run and check for errors
+# do an initial run and check for errors
 /usr/local/bin/getabusix.sh --debug
-</pre>
+```
 
-## Frequent Updating ##
-In order for the zones to automatically, you'll need to setup a cron job with crontab.
-<pre>
-# fire up the crontab
+## Scheduled updates
+
+To keep the zones up to date, run the script from cron:
+
+```sh
+# open root's crontab
 sudo crontab -e
 
 # run the script every minute
 * * * * * /usr/local/bin/getabusix.sh
-</pre>
+```
+
+## Configuration
+
+All settings live in `getabusix.conf`, which is sourced as a shell file.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `USERNAME` | yes | rsync username provided by Abusix |
+| `USERPASS` | yes | rsync password provided by Abusix |
+| `DESTPATH` | yes | Directory the zone files are mirrored into; created if missing. Default in the shipped file: `/var/lib/rbldnsd/abusix` |
+| `BETA_DESTPATH` | no | Directory for the beta zone files; must differ from `DESTPATH` |
+| `LOGFILE` | no | Path of a log file, or `logger` (syslog) or `stdout`. Without it the script logs to syslog when `logger` is installed, otherwise to stdout |
+| `RSYNCPOOL` | no | rsync server pool. Default `rsync.abusix.zone`, which uses geo-location to pick the closest servers; `rsync-na.abusix.zone` (North America) and `rsync-eu.abusix.zone` (Europe) select a region |
+
+## Upgrading from version 1 of this script
+
+Copy `getabusix.conf` to `/etc` or `/usr/local/etc`, then copy the `USERNAME`, `USERPASS` and `DESTPATH` settings from the existing `getabusix.sh` into it. Overwrite the existing `getabusix.sh` with the new script, and run `getabusix.sh --debug` to make sure no errors are returned.

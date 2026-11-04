@@ -27,7 +27,7 @@ release_lock() {
 }
 
 # Runs on HUP, INT and TERM. The EXIT trap then releases the lock.
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 on_signal() {
     log "Script interrupted."
     exit 1

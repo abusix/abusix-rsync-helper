@@ -4,7 +4,7 @@
 # Copyright 2019, Abusix Inc.
 #
 #################################################################
-#  Please do not modify anything in this file.
+#  Configure via getabusix.conf; this file is replaced on upgrade.
 #################################################################
 
 VERSION=2

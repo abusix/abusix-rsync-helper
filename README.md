@@ -2,7 +2,7 @@
 
 `getabusix.sh` is a shell script that downloads the Abusix Mail Intelligence zone files over rsync, so that a local DNS server such as rbldnsd can serve them.
 
-The script needs a username and password to access the zone files. If you do not have a username or password yet, please reach out to sales@abusix.com or use our free online query service available at https://abusix.ai.
+The script needs a username and password to access the zone files. If you do not have a username or password yet, please reach out to sales@abusix.com or use our free online query service available at https://app.abusix.com.
 
 ## How it works
 

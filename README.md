@@ -9,11 +9,11 @@ The script needs a username and password to access the zone files. If you do not
 Each run:
 
 1. Reads `getabusix.conf` from `/etc`, then `/usr/local/etc`, then the script's own directory, and stops at the first one it finds.
-2. Exits if `DESTPATH/.lock` exists, otherwise creates it, so two runs never overlap.
+2. Creates `DESTPATH/.lock` containing its process ID, so two runs never overlap. If the lock exists and its process is still running, the script exits. If that process is gone, for example after a crash or reboot, the stale lock is removed and the run continues. A lock file without a process ID comes from an older version of the script and is never removed automatically, so delete it by hand if no other run is active.
 3. Waits a random 1 to 20 seconds to spread the load on the rsync servers (skipped with `--debug`).
 4. Mirrors the `lists` rsync module from `RSYNCPOOL` into `DESTPATH`, and the `beta-lists` module into `BETA_DESTPATH` when that is set. Files are written to a temporary directory first and moved into place together, so rbldnsd never reads a half-written zone. A failed download is retried three times.
-5. Logs a notice if the `SCRIPT_VERSION` file in the downloaded data names a newer version than the script's own (`VERSION=2`).
-6. Removes the lock file.
+5. Logs a notice if the `SCRIPT_VERSION` file in the downloaded data names a newer version than the script's own (`VERSION=3`).
+6. Removes the lock file, also when it is interrupted or a download fails for good.
 
 **IMPORTANT** Make sure that `DESTPATH` only contains Abusix zone files. The directory is mirrored, so any file or directory that is not on our rsync server is removed. The same applies to `BETA_DESTPATH`.
 
@@ -66,3 +66,7 @@ All settings live in `getabusix.conf`, which is sourced as a shell file.
 ## Upgrading from version 1 of this script
 
 Copy `getabusix.conf` to `/etc` or `/usr/local/etc`, then copy the `USERNAME`, `USERPASS` and `DESTPATH` settings from the existing `getabusix.sh` into it. Overwrite the existing `getabusix.sh` with the new script, and run `getabusix.sh --debug` to make sure no errors are returned.
+
+## Upgrading from version 2 of this script
+
+Version 3 uses the same `getabusix.conf` settings. Overwrite the existing `getabusix.sh` with the new script and run `getabusix.sh --debug` to make sure no errors are returned.

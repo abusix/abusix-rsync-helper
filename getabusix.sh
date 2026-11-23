@@ -7,7 +7,7 @@
 #  Configure via getabusix.conf; this file is replaced on upgrade.
 #################################################################
 
-VERSION=2
+VERSION=3
 
 LOGGER=$(command -v logger)
 
